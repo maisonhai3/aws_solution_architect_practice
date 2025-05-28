@@ -1,3 +1,17 @@
+// Create IAM roles for GitHub Actions
+aws cloudformation create-stack \
+  --stack-name cicd-github-actions-iam \
+  --template-body file://exp_telemetry/cloudformation-cicd-iam.yaml \
+  --capabilities CAPABILITY_NAMED_IAM
+
+
+// Create S3 buckets
+aws cloudformation create-stack \
+  --stack-name hello-world-lambda-buckets \
+  --template-body file://exp_telemetry/cloudformation-s3-buckets.yaml
+
+
+// Create the CloudFormation stack for the Hello API
 aws cloudformation deploy \
   --template-file ./exp_telemetry/cloudformation-hello-api.yaml \
   --stack-name hello-api-stack \
@@ -5,6 +19,15 @@ aws cloudformation deploy \
   --parameter-overrides LambdaS3Key=lambda_appconfig_example.zip
 
 
+// Create the CloudFormation stack for the Hello API
+aws cloudformation deploy \
+  --template-file ./exp_telemetry/cloudformation-hello-api.yaml \
+  --stack-name hello-api-stack \
+  --capabilities CAPABILITY_NAMED_IAM
+  --parameter-overrides LambdaS3Key=lambda_appconfig_example.zip
+
+
+// Create the CloudFormation stack for the Hello API
 aws cloudformation create-stack \
 --stack-name hello-api-stack \
 --template-body file://exp_telemetry/cloudformation-hello-api.yaml \

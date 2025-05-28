@@ -1,0 +1,39 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  CloudFormation template to create S3 buckets for Lambda deployment in dev, staging, and prod environments.
+
+Resources:
+  S3BucketDev:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub hello-world-lambda-development-${AWS::AccountId}
+      Tags:
+        - Key: Environment
+          Value: development
+
+  S3BucketStaging:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub hello-world-lambda-staging-${AWS::AccountId}
+      Tags:
+        - Key: Environment
+          Value: staging
+
+  S3BucketProd:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub hello-world-lambda-production-${AWS::AccountId}
+      Tags:
+        - Key: Environment
+          Value: production
+
+Outputs:
+  S3BucketDevName:
+    Description: S3 bucket for Lambda dev environment
+    Value: !Ref S3BucketDev
+  S3BucketStagingName:
+    Description: S3 bucket for Lambda staging environment
+    Value: !Ref S3BucketStaging
+  S3BucketProdName:
+    Description: S3 bucket for Lambda prod environment
+    Value: !Ref S3BucketProd

@@ -12,7 +12,7 @@ Parameters:
       - hello-world-lambda-dev
       - hello-world-lambda-staging
       - hello-world-lambda-prod
-    Default: hello-world-lambda-dev
+    Default: hello-world-lambda-init
   LambdaS3Key:
     Type: String
     Default: lambda_appconfig_example.zip
@@ -152,31 +152,6 @@ Resources:
       Principal: apigateway.amazonaws.com
       SourceArn:
         Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${HelloApi}/*/GET/hello
-
-  # S3 Buckets for different environments
-  S3BucketDev:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: hello-world-lambda-dev
-      Tags:
-        - Key: Environment
-          Value: development
-
-  S3BucketStaging:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: hello-world-lambda-staging
-      Tags:
-        - Key: Environment
-          Value: staging
-
-  S3BucketProd:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: hello-world-lambda-prod
-      Tags:
-        - Key: Environment
-          Value: production
 
 Outputs:
   ApiEndpoint:
