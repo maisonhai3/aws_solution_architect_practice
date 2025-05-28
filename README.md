@@ -1,0 +1,1 @@
+# aws_solution_architect_practice
