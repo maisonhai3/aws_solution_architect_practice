@@ -1,0 +1,165 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  CloudFormation template for API Gateway + Lambda + AppConfig + CloudWatch Metrics
+  Example: /hello endpoint with dynamic response and telemetry.
+
+Parameters:
+  LambdaS3Bucket:
+    Type: String
+    Default: exp-purpse-bucket
+    Description: S3 bucket where Lambda code is stored
+  LambdaS3Key:
+    Type: String
+    Default: lambda_appconfig_example.zip
+    Description: S3 key for Lambda deployment package (e.g., hello-lambda.zip)
+
+Resources:
+  # AppConfig Application
+  AppConfigApplication:
+    Type: AWS::AppConfig::Application
+    Properties:
+      Name: HelloWorld
+      Description: AppConfig application for HelloWorld Lambda
+
+  # AppConfig Environments
+  AppConfigEnvironmentDev:
+    Type: AWS::AppConfig::Environment
+    Properties:
+      ApplicationId: !Ref AppConfigApplication
+      Name: development
+  AppConfigEnvironmentStaging:
+    Type: AWS::AppConfig::Environment
+    Properties:
+      ApplicationId: !Ref AppConfigApplication
+      Name: staging
+  AppConfigEnvironmentProd:
+    Type: AWS::AppConfig::Environment
+    Properties:
+      ApplicationId: !Ref AppConfigApplication
+      Name: production
+
+  # AppConfig Configuration Profile
+  AppConfigConfigProfile:
+    Type: AWS::AppConfig::ConfigurationProfile
+    Properties:
+      ApplicationId: !Ref AppConfigApplication
+      Name: is_world_flag
+      LocationUri: hosted
+      Type: AWS.Freeform
+      Validators: []
+
+  # AppConfig Hosted Configuration Version (default: is_world=true)
+  AppConfigConfigVersion:
+    Type: AWS::AppConfig::HostedConfigurationVersion
+    Properties:
+      ApplicationId: !Ref AppConfigApplication
+      ConfigurationProfileId: !Ref AppConfigConfigProfile
+      ContentType: 'application/json'
+      Content: '{"is_world": true}'
+
+  # Lambda Execution Role
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: LambdaAppConfigCloudWatch
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - appconfig:GetConfiguration
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - cloudwatch:PutMetricData
+                Resource: '*'
+
+  # Lambda Function
+  HelloLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: HelloWorldLambda
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Runtime: python3.12
+      Code:
+        S3Bucket: !Ref LambdaS3Bucket
+        S3Key: !Ref LambdaS3Key
+      Environment:
+        Variables:
+          APPCONFIG_APPLICATION_ID: !Ref AppConfigApplication
+          APPCONFIG_ENVIRONMENT_ID: !Ref AppConfigEnvironmentDev
+          APPCONFIG_CONFIG_PROFILE_ID: !Ref AppConfigConfigProfile
+      Timeout: 10
+      Tags:
+        - Key: Environment
+          Value: development
+
+  # API Gateway Rest API
+  HelloApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: HelloApi
+      Description: API Gateway for /hello endpoint
+
+  HelloApiResourceHello:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt HelloApi.RootResourceId
+      PathPart: hello
+      RestApiId: !Ref HelloApi
+
+  HelloApiMethodHelloGet:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref HelloApi
+      ResourceId: !Ref HelloApiResourceHello
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${HelloLambda.Arn}/invocations
+
+  # Lambda Permission for API Gateway
+  LambdaApiInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref HelloLambda
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${HelloApi}/*/GET/hello
+
+Outputs:
+  ApiEndpoint:
+    Description: Invoke URL for /hello endpoint
+    Value:
+      Fn::Sub: https://${HelloApi}.execute-api.${AWS::Region}.amazonaws.com/prod/hello
+  LambdaName:
+    Description: Lambda function name
+    Value: !Ref HelloLambda
+  AppConfigApplicationId:
+    Description: AppConfig Application ID
+    Value: !Ref AppConfigApplication
+  AppConfigConfigProfileId:
+    Description: AppConfig Config Profile ID
+    Value: !Ref AppConfigConfigProfile
+  AppConfigEnvironmentDevId:
+    Description: AppConfig Development Environment ID
+    Value: !Ref AppConfigEnvironmentDev

@@ -1,0 +1,12 @@
+aws cloudformation deploy \
+  --template-file ./exp_telemetry/cloudformation-hello-api.yaml \
+  --stack-name hello-api-stack \
+  --capabilities CAPABILITY_NAMED_IAM
+  --parameter-overrides LambdaS3Key=lambda_appconfig_example.zip
+
+
+aws cloudformation create-stack \
+--stack-name hello-api-stack \
+--template-body file://exp_telemetry/cloudformation-hello-api.yaml \
+--capabilities CAPABILITY_NAMED_IAM \
+--parameters ParameterKey=LambdaS3Key,ParameterValue=lambda_appconfig_example.zip
