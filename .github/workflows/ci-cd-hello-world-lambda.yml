@@ -26,7 +26,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
         run: |
-          aws s3 cp exp_telemetry/lambda_appconfig_example.zip s3://hello-world-lambda-dev-${{ secrets.AWS_ACCOUNT_ID }}-${{ secrets.AWS_REGION }}/lambda_appconfig_example-dev.zip
+          aws s3 cp exp_telemetry/lambda_appconfig_example.zip s3://hello-world-lambda-dev/lambda_appconfig_example-dev.zip
       - name: Deploy to development
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -37,7 +37,7 @@ jobs:
             --template-file exp_telemetry/cloudformation-hello-api.yaml \
             --stack-name hello-api-stack-dev \
             --capabilities CAPABILITY_NAMED_IAM \
-            --parameter-overrides LambdaS3Key=lambda_appconfig_example-dev.zip LambdaS3Bucket=hello-world-lambda-dev-${{ secrets.AWS_ACCOUNT_ID }}-${{ secrets.AWS_REGION }}
+            --parameter-overrides LambdaS3Key=lambda_appconfig_example-dev.zip LambdaS3Bucket=hello-world-lambda-dev
 
   promote-to-staging:
     needs: build-and-package
@@ -50,7 +50,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
         run: |
-          aws s3 cp exp_telemetry/lambda_appconfig_example.zip s3://hello-world-lambda-staging-${{ secrets.AWS_ACCOUNT_ID }}-${{ secrets.AWS_REGION }}/lambda_appconfig_example-staging.zip
+          aws s3 cp exp_telemetry/lambda_appconfig_example.zip s3://hello-world-lambda-staging/lambda_appconfig_example-staging.zip
       - name: Deploy to staging
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -61,7 +61,7 @@ jobs:
             --template-file exp_telemetry/cloudformation-hello-api.yaml \
             --stack-name hello-api-stack-staging \
             --capabilities CAPABILITY_NAMED_IAM \
-            --parameter-overrides LambdaS3Key=lambda_appconfig_example-staging.zip LambdaS3Bucket=hello-world-lambda-staging-${{ secrets.AWS_ACCOUNT_ID }}-${{ secrets.AWS_REGION }}
+            --parameter-overrides LambdaS3Key=lambda_appconfig_example-staging.zip LambdaS3Bucket=hello-world-lambda-staging
 
   promote-to-production:
     needs: promote-to-staging
@@ -74,7 +74,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
         run: |
-          aws s3 cp exp_telemetry/lambda_appconfig_example.zip s3://hello-world-lambda-prod-${{ secrets.AWS_ACCOUNT_ID }}-${{ secrets.AWS_REGION }}/lambda_appconfig_example-prod.zip
+          aws s3 cp exp_telemetry/lambda_appconfig_example.zip s3://hello-world-lambda-prod/lambda_appconfig_example-prod.zip
       - name: Deploy to production
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -85,4 +85,4 @@ jobs:
             --template-file exp_telemetry/cloudformation-hello-api.yaml \
             --stack-name hello-api-stack-prod \
             --capabilities CAPABILITY_NAMED_IAM \
-            --parameter-overrides LambdaS3Key=lambda_appconfig_example-prod.zip LambdaS3Bucket=hello-world-lambda-prod-${{ secrets.AWS_ACCOUNT_ID }}-${{ secrets.AWS_REGION }}
+            --parameter-overrides LambdaS3Key=lambda_appconfig_example-prod.zip LambdaS3Bucket=hello-world-lambda-prod
