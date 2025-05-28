@@ -6,8 +6,12 @@ Description: >
 Parameters:
   LambdaS3Bucket:
     Type: String
-    Default: exp-purpse-bucket
     Description: S3 bucket where Lambda code is stored
+    AllowedValues:
+      - !Sub hello-world-lambda-dev-${AWS::AccountId}-${AWS::Region}
+      - !Sub hello-world-lambda-staging-${AWS::AccountId}-${AWS::Region}
+      - !Sub hello-world-lambda-prod-${AWS::AccountId}-${AWS::Region}
+    Default: !Sub hello-world-lambda-dev-${AWS::AccountId}-${AWS::Region}
   LambdaS3Key:
     Type: String
     Default: lambda_appconfig_example.zip
@@ -76,6 +80,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - appconfig:GetConfiguration
+                  - appconfig:StartConfigurationSession
                 Resource: '*'
               - Effect: Allow
                 Action:
@@ -93,7 +98,7 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: HelloWorldLambda
-      Handler: index.handler
+      Handler: hello-world-lambda.handler
       Role: !GetAtt LambdaExecutionRole.Arn
       Runtime: python3.12
       Code:
@@ -145,6 +150,31 @@ Resources:
       Principal: apigateway.amazonaws.com
       SourceArn:
         Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${HelloApi}/*/GET/hello
+
+  # S3 Buckets for different environments
+  S3BucketDev:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub hello-world-lambda-dev-${AWS::AccountId}-${AWS::Region}
+      Tags:
+        - Key: Environment
+          Value: development
+
+  S3BucketStaging:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub hello-world-lambda-staging-${AWS::AccountId}-${AWS::Region}
+      Tags:
+        - Key: Environment
+          Value: staging
+
+  S3BucketProd:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub hello-world-lambda-prod-${AWS::AccountId}-${AWS::Region}
+      Tags:
+        - Key: Environment
+          Value: production
 
 Outputs:
   ApiEndpoint:
