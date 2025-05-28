@@ -8,10 +8,11 @@ Parameters:
     Type: String
     Description: S3 bucket where Lambda code is stored
     AllowedValues:
-      - !Sub hello-world-lambda-dev-${AWS::AccountId}-${AWS::Region}
-      - !Sub hello-world-lambda-staging-${AWS::AccountId}-${AWS::Region}
-      - !Sub hello-world-lambda-prod-${AWS::AccountId}-${AWS::Region}
-    Default: !Sub hello-world-lambda-dev-${AWS::AccountId}-${AWS::Region}
+      - hello-world-lambda-init
+      - hello-world-lambda-dev
+      - hello-world-lambda-staging
+      - hello-world-lambda-prod
+    Default: hello-world-lambda-dev
   LambdaS3Key:
     Type: String
     Default: lambda_appconfig_example.zip
