@@ -81,6 +81,7 @@ Resources:
                 Action:
                   - appconfig:GetConfiguration
                   - appconfig:StartConfigurationSession
+                  - appconfig:GetLatestConfiguration
                 Resource: '*'
               - Effect: Allow
                 Action:
