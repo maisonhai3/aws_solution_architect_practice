@@ -30,6 +30,7 @@ Resources:
               - cloudformation:DescribeChangeSet
               - cloudformation:ExecuteChangeSet
               - cloudformation:DeleteChangeSet
+              - cloudformation:GetTemplateSummary
               - lambda:CreateFunction
               - lambda:UpdateFunctionCode
               - lambda:UpdateFunctionConfiguration
@@ -51,14 +52,36 @@ Resources:
               - logs:CreateLogGroup
               - logs:CreateLogStream
               - logs:PutLogEvents
-              - appconfig:GetConfiguration
-              - appconfig:StartConfigurationSession
-              - appconfig:GetLatestConfiguration
-              - appconfig:ListApplications
-              - appconfig:ListEnvironments
-              - appconfig:ListConfigurationProfiles
-              - appconfig:ListHostedConfigurationVersions
               - cloudwatch:PutMetricData
+              - iam:CreateRole
+              - iam:DeleteRole
+              - iam:GetRole
+              - iam:ListRoles
+              - iam:AttachRolePolicy
+              - iam:DetachRolePolicy
+              - iam:PutRolePolicy
+              - iam:DeleteRolePolicy
+              - iam:CreatePolicy
+              - iam:DeletePolicy
+              - iam:GetPolicy
+              - iam:ListPolicies
+              - iam:CreateUser
+              - iam:DeleteUser
+              - iam:GetUser
+              - iam:ListUsers
+              - iam:AddUserToGroup
+              - iam:RemoveUserFromGroup
+              - iam:CreateGroup
+              - iam:DeleteGroup
+              - iam:GetGroup
+              - iam:ListGroups
+              - iam:CreateInstanceProfile
+              - iam:DeleteInstanceProfile
+              - iam:GetInstanceProfile
+              - iam:ListInstanceProfiles
+              - iam:AddRoleToInstanceProfile
+              - iam:RemoveRoleFromInstanceProfile
+              - appconfig:*
             Resource: '*'
 
   CICDUser:
@@ -89,3 +112,6 @@ Outputs:
   CICDUserSecretAccessKey:
     Description: Secret Access Key for the CI/CD IAM User
     Value: !GetAtt CICDUserAccessKey.SecretAccessKey
+  CICDAccountId:
+    Description: AWS Account ID
+    Value: !Ref AWS::AccountId
