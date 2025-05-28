@@ -157,7 +157,7 @@ Resources:
   S3BucketDev:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub hello-world-lambda-dev-${AWS::AccountId}-${AWS::Region}
+      BucketName: hello-world-lambda-dev
       Tags:
         - Key: Environment
           Value: development
@@ -165,7 +165,7 @@ Resources:
   S3BucketStaging:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub hello-world-lambda-staging-${AWS::AccountId}-${AWS::Region}
+      BucketName: hello-world-lambda-staging
       Tags:
         - Key: Environment
           Value: staging
@@ -173,7 +173,7 @@ Resources:
   S3BucketProd:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub hello-world-lambda-prod-${AWS::AccountId}-${AWS::Region}
+      BucketName: hello-world-lambda-prod
       Tags:
         - Key: Environment
           Value: production
