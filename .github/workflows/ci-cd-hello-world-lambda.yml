@@ -1,0 +1,88 @@
+name: CI/CD for HelloWorldLambda
+
+on:
+  push:
+    paths:
+      - 'exp_telemetry/hello-world-lambda.py'
+      - 'exp_telemetry/cloudformation-hello-api.yaml'
+      - '.github/workflows/ci-cd-hello-world-lambda.yml'
+
+jobs:
+  build-and-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+      - name: Zip Lambda code
+        run: |
+          cd exp_telemetry
+          zip lambda_appconfig_example.zip hello-world-lambda.py
+      - name: Upload Lambda package to S3 (dev)
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          aws s3 cp exp_telemetry/lambda_appconfig_example.zip s3://hello-world-lambda-dev-${{ secrets.AWS_ACCOUNT_ID }}-${{ secrets.AWS_REGION }}/lambda_appconfig_example-dev.zip
+      - name: Deploy to development
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          aws cloudformation deploy \
+            --template-file exp_telemetry/cloudformation-hello-api.yaml \
+            --stack-name hello-api-stack-dev \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --parameter-overrides LambdaS3Key=lambda_appconfig_example-dev.zip LambdaS3Bucket=hello-world-lambda-dev-${{ secrets.AWS_ACCOUNT_ID }}-${{ secrets.AWS_REGION }}
+
+  promote-to-staging:
+    needs: build-and-package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Upload Lambda package to S3 (staging)
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          aws s3 cp exp_telemetry/lambda_appconfig_example.zip s3://hello-world-lambda-staging-${{ secrets.AWS_ACCOUNT_ID }}-${{ secrets.AWS_REGION }}/lambda_appconfig_example-staging.zip
+      - name: Deploy to staging
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          aws cloudformation deploy \
+            --template-file exp_telemetry/cloudformation-hello-api.yaml \
+            --stack-name hello-api-stack-staging \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --parameter-overrides LambdaS3Key=lambda_appconfig_example-staging.zip LambdaS3Bucket=hello-world-lambda-staging-${{ secrets.AWS_ACCOUNT_ID }}-${{ secrets.AWS_REGION }}
+
+  promote-to-production:
+    needs: promote-to-staging
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Upload Lambda package to S3 (prod)
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          aws s3 cp exp_telemetry/lambda_appconfig_example.zip s3://hello-world-lambda-prod-${{ secrets.AWS_ACCOUNT_ID }}-${{ secrets.AWS_REGION }}/lambda_appconfig_example-prod.zip
+      - name: Deploy to production
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          aws cloudformation deploy \
+            --template-file exp_telemetry/cloudformation-hello-api.yaml \
+            --stack-name hello-api-stack-prod \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --parameter-overrides LambdaS3Key=lambda_appconfig_example-prod.zip LambdaS3Bucket=hello-world-lambda-prod-${{ secrets.AWS_ACCOUNT_ID }}-${{ secrets.AWS_REGION }}
