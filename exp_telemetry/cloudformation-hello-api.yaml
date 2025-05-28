@@ -7,10 +7,10 @@ Parameters:
   LambdaS3Bucket:
     Type: String
     Description: S3 bucket where Lambda code is stored
-    AllowedValues:
-      - !Sub hello-world-lambda-development-${AWS::AccountId}
-      - !Sub hello-world-lambda-staging-${AWS::AccountId}
-      - !Sub hello-world-lambda-production-${AWS::AccountId}
+    # AllowedValues:
+    #   - !Sub hello-world-lambda-development-${AWS::AccountId}
+    #   - !Sub hello-world-lambda-staging-${AWS::AccountId}
+    #   - !Sub hello-world-lambda-production-${AWS::AccountId}
     Default: hello-world-lambda-development-DEFAULT_ACCOUNT_ID
   # Replace DEFAULT_ACCOUNT_ID with the actual account ID or use a dynamic reference if needed
   LambdaS3Key:
