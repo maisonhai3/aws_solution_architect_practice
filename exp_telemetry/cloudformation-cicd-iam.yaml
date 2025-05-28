@@ -31,14 +31,7 @@ Resources:
               - cloudformation:ExecuteChangeSet
               - cloudformation:DeleteChangeSet
               - cloudformation:GetTemplateSummary
-              - lambda:CreateFunction
-              - lambda:UpdateFunctionCode
-              - lambda:UpdateFunctionConfiguration
-              - lambda:DeleteFunction
-              - lambda:GetFunction
-              - lambda:ListFunctions
-              - lambda:AddPermission
-              - lambda:RemovePermission
+              - lambda:*
               - iam:PassRole
               - s3:PutObject
               - s3:GetObject
