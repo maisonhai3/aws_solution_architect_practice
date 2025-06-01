@@ -33,3 +33,11 @@ aws cloudformation create-stack \
 --template-body file://exp_telemetry/cloudformation-hello-api.yaml \
 --capabilities CAPABILITY_NAMED_IAM \
 --parameters ParameterKey=LambdaS3Key,ParameterValue=lambda_appconfig_example.zip
+
+
+--- LB ---
+// Create the CloudFormation stack for Load Balancing
+aws cloudformation create-stack \
+  --stack-name exp-load-balancing \
+  --template-body file://exp_load_balancing/cloudformation-load-balancing.yaml \
+  --capabilities CAPABILITY_NAMED_IAM

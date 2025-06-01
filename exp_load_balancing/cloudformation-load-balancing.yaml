@@ -9,17 +9,6 @@ Parameters:
     Default: vpc-076b49948c6daf285
 
 Resources:
-  AppSubnet:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref VpcId
-      CidrBlock: 10.0.10.0/24
-      AvailabilityZone: !Select [0, !GetAZs '']
-      MapPublicIpOnLaunch: true
-      Tags:
-        - Key: Name
-          Value: exp-load-balancing-subnet
-
   AppSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -59,16 +48,21 @@ Resources:
       Port: 80
       TargetType: instance
       HealthCheckPath: /health
-      StickinessEnabled: true
-      StickinessType: lb_cookie
       Matcher:
         HttpCode: 200
+      TargetGroupAttributes:
+      - Key: stickiness.enabled
+        Value: true
+      - Key: stickiness.type
+        Value: lb_cookie
+      - Key: stickiness.lb_cookie.duration_seconds
+        Value: '86400'  # 24 hours (adjust as needed)
 
   ApplicationLoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
       Name: exp-alb
-      Subnets: [!Ref AppSubnet]
+      Subnets: [subnet-0a3d043af1bc6d69e, subnet-0fd165efd8625e6b4]
       SecurityGroups: [!Ref AppSecurityGroup]
       Scheme: internet-facing
       Type: application
@@ -87,7 +81,7 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
       Name: exp-nlb
-      Subnets: [!Ref AppSubnet]
+      Subnets: [subnet-0a3d043af1bc6d69e, subnet-0fd165efd8625e6b4]
       Scheme: internet-facing
       Type: network
 
@@ -115,8 +109,8 @@ Resources:
     Type: AWS::EC2::Instance
     Properties:
       ImageId: ami-0afc7fe9be84307e4
-      InstanceType: t3.micro
-      SubnetId: !Ref AppSubnet
+      InstanceType: t2.micro
+      SubnetId: subnet-0a3d043af1bc6d69e
       SecurityGroupIds: [!Ref AppSecurityGroup]
       IamInstanceProfile: !Ref AppInstanceProfile
       UserData:
