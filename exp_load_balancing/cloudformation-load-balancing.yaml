@@ -1,0 +1,139 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Experiment: Load Balancing with ALB and NLB, demonstrating chaining and sticky sessions.
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC to deploy resources in
+    Default: vpc-076b49948c6daf285
+
+Resources:
+  AppSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VpcId
+      CidrBlock: 10.0.10.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: exp-load-balancing-subnet
+
+  AppSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for app instances
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+
+  AppInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess
+
+  AppInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles: [!Ref AppInstanceRole]
+      Path: /
+
+  AppTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      VpcId: !Ref VpcId
+      Protocol: HTTP
+      Port: 80
+      TargetType: instance
+      HealthCheckPath: /health
+      StickinessEnabled: true
+      StickinessType: lb_cookie
+      Matcher:
+        HttpCode: 200
+
+  ApplicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: exp-alb
+      Subnets: [!Ref AppSubnet]
+      SecurityGroups: [!Ref AppSecurityGroup]
+      Scheme: internet-facing
+      Type: application
+
+  ALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref AppTargetGroup
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 80
+      Protocol: HTTP
+
+  NetworkLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: exp-nlb
+      Subnets: [!Ref AppSubnet]
+      Scheme: internet-facing
+      Type: network
+
+  NLBTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      VpcId: !Ref VpcId
+      Protocol: TCP
+      Port: 80
+      TargetType: alb
+      Targets:
+        - Id: !Ref ApplicationLoadBalancer
+
+  NLBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref NLBTargetGroup
+      LoadBalancerArn: !Ref NetworkLoadBalancer
+      Port: 80
+      Protocol: TCP
+
+  AppInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0afc7fe9be84307e4
+      InstanceType: t3.micro
+      SubnetId: !Ref AppSubnet
+      SecurityGroupIds: [!Ref AppSecurityGroup]
+      IamInstanceProfile: !Ref AppInstanceProfile
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          dnf update -y
+          dnf install -y python3 git
+          cd /home/ec2-user
+          git clone https://github.com/maisonhai3/aws_solution_architect_practice.git
+          cd exp_load_balancing/app
+          pip3 install -r requirements.txt
+          nohup python3 handler.py &
+
+Outputs:
+  ALBEndpoint:
+    Description: Application Load Balancer DNS
+    Value: !GetAtt ApplicationLoadBalancer.DNSName
+  NLBEndpoint:
+    Description: Network Load Balancer DNS
+    Value: !GetAtt NetworkLoadBalancer.DNSName
