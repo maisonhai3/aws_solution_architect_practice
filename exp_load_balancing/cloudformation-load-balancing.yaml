@@ -91,6 +91,7 @@ Resources:
 
   NLBTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    DependsOn: ALBListener # Ensures NLBTargetGroup is deleted before ALBListener
     Properties:
       VpcId: !Ref VpcId
       Protocol: TCP
