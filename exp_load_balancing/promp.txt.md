@@ -5,3 +5,9 @@ Create a new experiment in the `exp_load_balancing` directory with the following
 - In order to use a LB, I assume that we need some target group, let's use Sticky Session with 1 target group at least.
 - Implement some endpoints in Python to handle the request actually.
 - If you need security group, IAM, or anything necessary, create them as well.
+
+---
+
+Let's move on to the next phase: CI/CD.
+
+Give me some option for the CI/CD pipeline.

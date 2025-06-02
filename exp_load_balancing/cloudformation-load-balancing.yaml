@@ -32,7 +32,9 @@ Resources:
             Action: sts:AssumeRole
       Path: /
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess
+        - arn:aws:iam::aws:policy/AmazonECRReadOnly
+        - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess # For CodeDeploy agent to pull revisions
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforAWSCodeDeploy # Allows CodeDeploy agent to interact with EC2
 
   AppInstanceProfile:
     Type: AWS::IAM::InstanceProfile
@@ -115,16 +117,78 @@ Resources:
       SubnetId: subnet-0a3d043af1bc6d69e
       SecurityGroupIds: [!Ref AppSecurityGroup]
       IamInstanceProfile: !Ref AppInstanceProfile
+      Tags: # Added for CodeDeploy to identify the instance
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-AppInstance
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
+          # Update and install necessary packages
           dnf update -y
-          dnf install -y python3 git
+          dnf install -y python3 ruby wget docker
+          
+          # Install CodeDeploy Agent
           cd /home/ec2-user
-          git clone https://github.com/maisonhai3/aws_solution_architect_practice.git
-          cd exp_load_balancing/app
-          pip3 install -r requirements.txt
-          nohup python3 handler.py &
+          wget https://aws-codedeploy-${AWS::Region}.s3.${AWS::Region}.amazonaws.com/latest/install
+          chmod +x ./install
+          ./install auto
+          systemctl start codedeploy-agent
+          systemctl enable codedeploy-agent
+
+          # Start and enable Docker
+          systemctl start docker
+          systemctl enable docker
+          usermod -a -G docker ec2-user # Add ec2-user to docker group to run docker commands without sudo
+
+          # (Application deployment will be handled by CodeDeploy)
+
+  ECRRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub ${AWS::StackName}-app-repository
+      ImageScanningConfiguration:
+        ScanOnPush: true
+
+  CodeDeployServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codedeploy.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole
+
+  CodeDeployApplication:
+    Type: AWS::CodeDeploy::Application
+    Properties:
+      ApplicationName: !Sub ${AWS::StackName}-App
+      ComputePlatform: Server
+
+  CodeDeployDeploymentGroup:
+    Type: AWS::CodeDeploy::DeploymentGroup
+    Properties:
+      ApplicationName: !Ref CodeDeployApplication
+      DeploymentGroupName: !Sub ${AWS::StackName}-App-DG
+      ServiceRoleArn: !GetAtt CodeDeployServiceRole.Arn
+      DeploymentConfigName: CodeDeployDefault.OneAtATime # Or other predefined/custom config
+      Ec2TagFilters:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-AppInstance
+          Type: KEY_AND_VALUE
+      AutoRollbackConfiguration:
+        Enabled: true
+        Events:
+          - DEPLOYMENT_FAILURE
+          - DEPLOYMENT_STOP_ON_ALARM # Optional, if you have CloudWatch alarms
+          - DEPLOYMENT_STOP_ON_REQUEST
+      LoadBalancerInfo:
+        TargetGroupInfoList:
+          - Name: !GetAtt AppTargetGroup.TargetGroupName
 
 Outputs:
   ALBEndpoint:
